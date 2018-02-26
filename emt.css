@@ -1,0 +1,25 @@
+.emt .line {
+    padding-left: 0;
+    padding-right: 25px;
+    text-align: right;
+  }
+
+.emt .bus-icon {
+    padding-right: 10px;
+    text-align: center;
+  }
+
+.emt .time {
+    padding-right: 30px;
+    text-align: right;
+  }
+
+.emt .near {
+    color: lightgreen;
+}
+
+.emt .near .bright {
+    color: lightgreen;
+}
+
+  
