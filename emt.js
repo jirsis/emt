@@ -10,7 +10,7 @@ Module.register("emt", {
 
         idClient: "",
         passKey: "",
-        busStops: [],
+        busStops: [5511],
 
         warningTime: 5, 
         colored: false,
@@ -25,9 +25,9 @@ Module.register("emt", {
 
         fade: true,
         fadePoint: 0.25, // Start on 1/4th of the list.
-        
-        requiresVersion: "2.1.0",
     },
+
+    requiresVersion: "2.1.0",
 
     getStyles: function() {
 		return ["emt.css"];
@@ -51,7 +51,7 @@ Module.register("emt", {
         this.busesInfo = [];
         //Log.info("buses: "+ this.config.busStop);
 
-        for (stop of this.config.busStop){
+        for (stop of this.config.busStops){
             var emtRequest = new XMLHttpRequest();
             var emtQuery = new FormData();
             emtQuery.append('idClient', this.config.idClient);
@@ -226,7 +226,6 @@ Module.register("emt", {
 
     socketNotificationReceived: function (notification, payload) {
         if (notification === "BUS_STOP_EVENTS") {
-            this.config.text = "updated!";
             Log.log(payload);
         }    
         this.updateDom(this.config.animationSpeed);
