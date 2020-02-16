@@ -6,6 +6,7 @@ All you need to use this module is register yourself into EMT opendata platform 
 ## EMT Module Screenshot
 
 ![emt screenshot](https://github.com/jirsis/emt/raw/master/emt-screenshot.png "EMT screenshot module")
+![emt screenshot destination](https://github.com/jirsis/emt/raw/master/emt-screenshot-destination.png "EMT screenshot module with destination enable-destination")
 
 
 ## Using the module
@@ -49,4 +50,5 @@ The following properties can be configured:
 | `warningTime`         | Minutes estimated to arrive the bus, and visual alarm. <br><br> **Possible values:** integer value in `[0, 20]` <br> **Default value:** `5`
 | `colored`             | Enable colored warning alert. <br><br> **Possible values:** `true` or `false` <br> **Default value:** `true`
 | `updateInterval`      | Time between requests EMT platform in miliseconds. <br><br> **Possible values:** any integer <br> **Default value:** `60 * 1000`
+| `showDestination`     | Show the bus destination. <br><br> **Possible values:** `true` or `false` <br> **Default value:** `true`
 
