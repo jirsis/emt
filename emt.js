@@ -13,10 +13,10 @@ Module.register("emt", {
         busStops: [5511],
 
         warningTime: 5, 
-        colored: false,
+        colored: true,
+		showDestination: true,
 
-        apiBase: "https://openbus.emtmadrid.es/emt-proxy-server/last",
-        getArriveStopUri: "/geo/GetArriveStop.php",
+        apiBase: "https://openapi.emtmadrid.es/v1",
 
         animationSpeed: 2000,
 
@@ -47,34 +47,53 @@ Module.register("emt", {
 
     updateEmt: function(){
         var self = this;
-        var url = this.config.apiBase + this.config.getArriveStopUri;
         this.busesInfo = [];
-        //Log.info("buses: "+ this.config.busStop);
 
-        for (stop of this.config.busStops){
-            var emtRequest = new XMLHttpRequest();
-            var emtQuery = new FormData();
-            emtQuery.append('idClient', this.config.idClient);
-            emtQuery.append('passKey', this.config.passKey);
-            emtQuery.append('idStop', stop);
-            // Log.info("busStop: " + stop);
-            
-            emtRequest.open("POST", url, true);
-            emtRequest.onreadystatechange = function() {
-                if (this.readyState === 4) {
-                    //Log.info(stop+"-> "+this.response);
-                    var emtResponse = JSON.parse(this.response);
-                    if (emtResponse.ReturnCode){
-                        self.showError(emtResponse.Description);
-                        self.scheduleUpdate(self.config.updateInterval);
-                    }else{
-                        self.processEmtInformation(emtResponse);
-                        self.scheduleUpdate(self.config.updateInterval);
-                    }
-                }
-            };
-            emtRequest.send(emtQuery);
-        }
+	    fetch(`${this.config.apiBase}/mobilitylabs/user/login/`, { 
+		    method: 'GET',
+		    headers: new Headers({'email': this.config.idClient, 'password': this.config.passKey})
+		    })
+	    .then(loginResponse => {
+		   return loginResponse.json();
+	    })
+	    .then(data =>{
+		   return data.data[0].accessToken;
+	    })
+	    .then(accessToken => {
+		   var formatResponse = {
+		    "statistics":"N",
+		    "cultureInfo":"EN",
+		    "Text_StopRequired_YN":"Y",
+		    "Text_EstimationsRequired_YN":"Y",
+		    "Text_IncidencesRequired_YN":"Y",
+		    "DateTime_Referenced_Incidencies_YYYYMMDD":"20180823"
+		   }
+		   let busStopsRequests = self.config.busStops.map((stop) => {
+		       Log.info(`bus stop: ${stop}`);
+		       return fetch(`${self.config.apiBase}/transport/busemtmad/stops/${stop}/arrives/all/`, {
+	               method: 'POST',
+		           headers: new Headers({'accessToken': accessToken, 'content-type': 'application/json'}),
+		           body: JSON.stringify(formatResponse),
+		           })
+		       .then(arrivedResponse => {
+		           return arrivedResponse.json();
+		       })
+		   });
+		   Promise.all(busStopsRequests).then(allResults => {
+		       allResults.map(arrivalInfo => self.processEmtInformation(arrivalInfo.data[0].Arrive));
+			   self.scheduleUpdate(self.config.updateInterval);
+		   });
+	    });
+
+/*            if (emtResponse.ReturnCode){
+				self.showError(emtResponse.Description);
+				self.scheduleUpdate(self.config.updateInterval);
+		  }else{
+			      self.processEmtInformation(data.data[0].Arrive);
+			      self.scheduleUpdate(self.config.updateInterval);
+		       })
+		   }
+*/
     },
 
     getDom: function() {
@@ -106,8 +125,9 @@ Module.register("emt", {
         for (var b in buses){
             var bus = buses[b];
             var row = this.printRow(table, bus);
-            this.printIcon(row);
+            this.printIcon(row, bus);
             this.printLine(row, bus);
+			this.printDestination(row, bus);
             this.printTime(row, bus);
             this.printDistance(row, bus);
             this.fadeTable(row, buses, b);
@@ -124,13 +144,20 @@ Module.register("emt", {
         return row;
     },
 
-    printIcon: function(row){
+    printIcon: function(row, bus){
         var iconCell = document.createElement("td");
 		iconCell.className = "bus-icon ";
         row.appendChild(iconCell);
-        var icon = document.createElement("span");
-		icon.className = "fas fa-bus";
-		iconCell.appendChild(icon);
+        var busIcon = document.createElement("i");
+		busIcon.className = "fas fa-bus";
+		iconCell.appendChild(busIcon);
+        row.appendChild(iconCell);
+
+//		var busStopCell = document.createElement("td");
+//		busStopCell.className="bus-stop";
+//		busStopCell.innerHTML = bus.busStop;
+//		row.appendChild(busStopCell);
+
     },
 
     printLine: function(row, bus){
@@ -138,6 +165,14 @@ Module.register("emt", {
         lineCell.className = "bright line ";
         lineCell.innerHTML = bus.line;
         row.appendChild(lineCell);
+    },
+    printDestination: function(row, bus){
+		if(this.config.showDestination){
+            var destinationCell = document.createElement("td");
+            destinationCell.className = "bright line destination";
+            destinationCell.innerHTML = bus.destination.toLowerCase();
+            row.appendChild(destinationCell);
+	 	}
     },
 
     printTime: function(row, bus){
@@ -158,7 +193,7 @@ Module.register("emt", {
 
         var distanceMCell = document.createElement("td");
         distanceMCell.className = "align-left ";
-        distanceMCell.innerHTML = "." + m;
+        distanceMCell.innerHTML = `.${m}`;
         row.appendChild(distanceMCell);;
 
         var kmLabelCell = document.createElement("td");
@@ -204,13 +239,15 @@ Module.register("emt", {
 		}, nextLoad);
 	},
 
-    processEmtInformation: function(emtData){
-        for (bus of emtData.arrives){
-            Log.info(bus);
+    processEmtInformation: function(busStop){
+        for (bus of busStop){
             var busInfo = {};
-            busInfo.line = bus.lineId;
-            busInfo.distance = bus.busDistance;
-            busInfo.eta = bus.busTimeLeft;
+			Log.info(bus);
+            busInfo.line = bus.line;
+            busInfo.distance = bus.DistanceBus;
+            busInfo.eta = bus.estimateArrive;
+			busInfo.destination = bus.destination;
+			busInfo.busStop = bus.stop;
             this.busesInfo.push(busInfo);
         }
         

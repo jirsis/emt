@@ -22,4 +22,14 @@
     color: lightgreen;
 }
 
+.emt .destination {
+	text-transform: capitalize;
+}
+
+.emt .bus-stop {
+	text-orientation: sideways;
+	font-size: x-small;
+	padding-left: -10px;
+	padding-right: 15px;
+}
   
