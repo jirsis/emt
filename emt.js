@@ -51,7 +51,7 @@ Module.register("emt", {
 
 	    fetch(`${this.config.apiBase}/mobilitylabs/user/login/`, { 
 		    method: 'GET',
-		    headers: new Headers({'email': this.config.idClient, 'password': this.config.passKey})
+		    headers: new Headers({'X-ClientId': this.config.idClient, 'passKey': this.config.passKey})
 		    })
 	    .then(loginResponse => {
 		   return loginResponse.json();
